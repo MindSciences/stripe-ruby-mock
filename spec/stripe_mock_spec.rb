@@ -28,6 +28,13 @@ describe StripeMock do
     expect { Thread.new { Stripe::StripeClient.active_client.execute_request(:x, '/', api_key: 'abcde') }.join }.to raise_error Stripe::APIError
   end
 
+  it "reverts overriding stripe's execute_request method in other threads" do
+    StripeMock.start
+    Thread.new { Stripe::StripeClient.active_client.execute_request(:xtest, '/', api_key: 'abcde') }.join # no error
+    StripeMock.stop
+    expect { Thread.new { Stripe::StripeClient.active_client.execute_request(:x, '/', api_key: 'abcde') }.join }.to raise_error ArgumentError
+  end
+
   it "does not persist data between mock sessions" do
     StripeMock.start
     StripeMock.instance.customers[:x] = 9
